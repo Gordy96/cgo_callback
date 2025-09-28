@@ -1,49 +1,27 @@
 package main
 
-/*
-#cgo LDFLAGS: -ldl
-#include <dlfcn.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include "plugin/plugin.h"
-
-// forward declaration for trampoline
-extern int goRead(char* port, char* buf);
-extern int goWrite(char* port, char* buf, int size);
-
-// trampoline wrapper
-static void tInit(const char *port, init_func_t cb) {
-    cb(port, goRead, goWrite);
-}
-static void tRun(const char *port, run_func_t r) {
-	r(port);
-}
-static int test(char* port, char* buf) {
-	return sprintf(buf, "hello, %s", port);
-}
-*/
-import "C"
-
 import (
+	"cgo/adapter"
 	"cgo/dl"
 	"fmt"
-	"unsafe"
 )
 
-//export goRead
-func goRead(port *C.char, buf *C.char) C.int {
-	return C.test(port, buf)
+type FakePort struct{}
+
+func (f *FakePort) Name() string {
+	return "port"
 }
 
-//export goWrite
-func goWrite(port *C.char, buf *C.char, size C.int) C.int {
-	from := C.GoString(port)
-	b := C.GoBytes(unsafe.Pointer(buf), size)
-	s := string(b)
+func (f *FakePort) Read(b []byte) (n int, err error) {
+	const hw = "hello world"
+	copy(b, hw)
 
-	fmt.Printf("%s wrote \"%s\"\n", from, s)
+	return len(hw), nil
+}
 
-	return size
+func (f *FakePort) Write(b []byte) (n int, err error) {
+	fmt.Printf("fake port received: %s\n", b)
+	return len(b), nil
 }
 
 func main() {
@@ -54,24 +32,32 @@ func main() {
 	}
 	defer lib.Release()
 
-	sym, err := lib.Func("init")
+	err = adapter.InitLib(lib)
 	if err != nil {
 		panic(err)
 	}
 
-	port := C.CString("runner")
-
-	// Cast symbol to proper function pointer
-	initFunc := (C.init_func_t)(sym)
-
-	C.tInit(port, initFunc)
-
-	// Resolve the symbol
-	sym, err = lib.Func("run")
+	a, err := adapter.New("runner", []adapter.Port{&FakePort{}}, lib)
+	if err != nil {
+		panic(err)
+	}
+	err = a.Init()
 	if err != nil {
 		panic(err)
 	}
 
-	runFunc := (C.run_func_t)(sym)
-	C.tRun(port, runFunc)
+	defer a.Close()
+
+	err = a.TriggerPinInterrupt(2)
+	if err != nil {
+		panic(err)
+	}
+	err = a.TriggerPinInterrupt(2)
+	if err != nil {
+		panic(err)
+	}
+	err = a.TriggerPinInterrupt(2)
+	if err != nil {
+		panic(err)
+	}
 }
