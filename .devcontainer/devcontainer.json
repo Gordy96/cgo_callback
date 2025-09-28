@@ -1,0 +1,4 @@
+{
+  "name": "linux-dev-container-go",
+  "image": "golang:1.25"
+}
