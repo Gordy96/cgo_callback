@@ -2,7 +2,6 @@ package main
 
 import (
 	"cgo/adapter"
-	"cgo/dl"
 	"fmt"
 )
 
@@ -25,17 +24,11 @@ func (f *FakePort) Write(b []byte) (n int, err error) {
 }
 
 func main() {
-	// Load the .so dynamically
-	lib, err := dl.Open("./plugin/plugin.so")
+	lib, err := adapter.OpenLib("./plugin/plugin.so")
 	if err != nil {
 		panic(err)
 	}
 	defer lib.Release()
-
-	err = adapter.InitLib(lib)
-	if err != nil {
-		panic(err)
-	}
 
 	a, err := adapter.New("runner", []adapter.Port{&FakePort{}}, lib)
 	if err != nil {

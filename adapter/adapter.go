@@ -10,10 +10,10 @@ package adapter
 #include "../plugin/plugin.h"
 
 // forward declaration for trampoline
-extern int goRead(void *ctx, char* port, char* buf);
-extern int goWrite(void *ctx, char* port, char* buf, int size);
-extern void attachPinInterrupt(void *ctx, int pin, interrupt_callback_t cb);
-extern void attachTimeInterrupt(void *ctx, int time_ms, short periodic, interrupt_callback_t cb);
+extern int   goRead(void *ctx, char* port, char* buf);
+extern int   goWrite(void *ctx, char* port, char* buf, int size);
+extern void  attachPinInterrupt(void *ctx, int pin, interrupt_callback_t cb);
+extern void  attachTimeInterrupt(void *ctx, int time_ms, short periodic, interrupt_callback_t cb);
 extern void* dataGetter(void *ctx, char* name);
 extern void  dataSetter(void *ctx, char* name, void* value);
 extern void  goLog(char *line);
@@ -21,13 +21,13 @@ extern void  goLog(char *line);
 // trampoline wrapper
 static void tLibInit(lib_init_func_t lib_init) {
 	interface_t iface = {
-		.read_port = goRead,
-		.write_port = goWrite,
-		.attach_pin_interrupt = attachPinInterrupt,
+		.read_port             = goRead,
+		.write_port            = goWrite,
+		.attach_pin_interrupt  = attachPinInterrupt,
 		.attach_time_interrupt = attachTimeInterrupt,
-		.data_getter = dataGetter,
-		.data_setter = dataSetter,
-		.log = goLog,
+		.data_getter           = dataGetter,
+		.data_setter           = dataSetter,
+		.log                   = goLog,
 	};
     lib_init(iface);
 }
@@ -190,18 +190,6 @@ func (a *Adapter) TriggerTimerInterrupt(timeoutMS int) error {
 	return nil
 }
 
-func InitLib(lib *dl.SO) error {
-	sym, err := lib.Func("init_lib")
-	if err != nil {
-		return err
-	}
-
-	initFunc := (C.lib_init_func_t)(sym)
-	C.tLibInit(initFunc)
-
-	return nil
-}
-
 func New(id string, ports []Port, lib *dl.SO) (*Adapter, error) {
 	sym, err := lib.Func("init")
 	if err != nil {
@@ -234,4 +222,21 @@ func New(id string, ports []Port, lib *dl.SO) (*Adapter, error) {
 	}
 
 	return a, nil
+}
+
+func OpenLib(path string) (*dl.SO, error) {
+	lib, err := dl.Open(path)
+	if err != nil {
+		return nil, err
+	}
+
+	sym, err := lib.Func("init_lib")
+	if err != nil {
+		return nil, err
+	}
+
+	initFunc := (C.lib_init_func_t)(sym)
+	C.tLibInit(initFunc)
+
+	return lib, nil
 }
