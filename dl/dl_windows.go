@@ -9,8 +9,7 @@ import (
 )
 
 func unloadLibrary(handle unsafe.Pointer) error {
-	panic("unloading library")
-	return nil
+	return syscall.FreeLibrary(syscall.Handle(handle))
 }
 
 func loadLibrary(dlname string) (unsafe.Pointer, error) {
