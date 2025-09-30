@@ -5,20 +5,21 @@ package dl
 
 import (
 	"syscall"
+	"unsafe"
 )
 
-func unloadLibrary(handle uintptr) error {
+func unloadLibrary(handle unsafe.Pointer) error {
 	panic("unloading library")
 	return nil
 }
 
-func loadLibrary(dlname string) (uintptr, error) {
+func loadLibrary(dlname string) (unsafe.Pointer, error) {
 	h, err := syscall.LoadLibrary(dlname)
-	return uintptr(h), err
+	return unsafe.Pointer(h), err
 }
 
-func loadFunc(h uintptr, funcname string) (uintptr, error) {
+func loadFunc(h unsafe.Pointer, funcname string) (unsafe.Pointer, error) {
 	addr, err := syscall.GetProcAddress(syscall.Handle(h), funcname)
 
-	return uintptr(addr), err
+	return unsafe.Pointer(addr), err
 }
